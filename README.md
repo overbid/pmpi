@@ -10,9 +10,7 @@ In Thailand particulate matter is very high in October to February. This project
 * Sencor SDS011
 * [Optional] Raspberry Pi case
 
-I ordered Raspberry Pi from Cytron and others from Aliexpress, totally below $35.
-
-## Installation
+I used an old Raspberry Pi and others from Aliexpress, totally below $60.
 
 Signup [ThingSpeak](https://thingspeak.com). Got Channel ID and Write API Key to configure .env, and setting
 
@@ -22,7 +20,42 @@ Signup [ThingSpeak](https://thingspeak.com). Got Channel ID and Write API Key to
 * Field 4: Pm 10 in AQI Index
 * Field 5: CPU temperature (must less than 85℃)
 
-Download Image from [Ubuntu Server](http://cdimage.ubuntu.com/ubuntu-server/focal/daily-preinstalled/current/) for Raspberry Pi mostly use [32 bits](http://cdimage.ubuntu.com/ubuntu-server/focal/daily-preinstalled/current/focal-preinstalled-server-armhf+raspi.img.xz) except you have RAM more than 4 GB and that extravagant for use in this project. (You can use Raspberry Pi OS or Debian like OS but I didn't test it)
+Download Image from [Ubuntu Server](http://cdimage.ubuntu.com/ubuntu-server/focal/daily-preinstalled/current/) for Raspberry Pi mostly use [32 bits](http://cdimage.ubuntu.com/ubuntu-server/focal/daily-preinstalled/current/focal-preinstalled-server-armhf+raspi.img.xz) except you have RAM more than 4 GB and that extravagant for use in this project. (You can use Raspberry Pi OS or Debian like OS if you like)
+
+## Headless Connection
+
+* Ubuntu Server
+
+    Edit a `network-config` file in the `boot` partition.
+
+    ```yaml
+    wifis:
+    wlan0:
+        dhcp4: true
+        optional: true
+        access-points:
+        <Your SSID>:
+            password: "<Yor Password>"
+    ```
+
+* Raspberry Pi OS
+
+    1. Create empty `ssh` file in the `boot` partition.
+
+    2. Create `wpa_supplicant.conf` file in the `boot` partition.
+
+    ```conf
+    country=TH
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    update_config=1
+
+    network={
+        ssid="<Your SSID>"
+        psk="<Yor Password>"
+    }
+    ```
+
+## Installation
 
 ```bash
 # Set hostname to prevent duplication.
@@ -53,13 +86,13 @@ cd && git clone https://github.com/overbid/pmpi.git
 
 # Configure .env.
 cp .env.example .env
-sed -i "s/CHANNEL_ID=.*/CHANNEL_ID=<Your Channel ID>/g" .env
-sed -i "s/APIKEY_WRITE=.*/APIKEY_WRITE=<Your Write API Key>/g" .env
+sed -i 's/CHANNEL_ID=.*/CHANNEL_ID=<Your Channel ID>/g' .env
+sed -i 's/APIKEY_WRITE=.*/APIKEY_WRITE=<Your Write API Key>/g' .env
 
 # Setting crontab to send data to ThingSpeak every 3 minutes.
 cd && crontab -e
 crontab -l > my-crontab
-echo "*/3 * * * * /usr/bin/python3 /home/ubuntu/pmpi/pmpi.py >> ~/cron.log 2>&1" | tee -a my-crontab
+echo '*/3 * * * * /usr/bin/python3 /home/ubuntu/pmpi/pmpi.py >> ~/cron.log 2>&1' | tee -a my-crontab
 crontab my-crontab
 
 # Wait at 3 minutes and checking.
