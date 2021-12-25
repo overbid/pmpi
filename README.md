@@ -79,7 +79,7 @@ sudo apt --yes autoremove
 # paho-mqtt for MQTT connection
 # py-sds011 for get data fron sensor
 # python-aqi for indicating PM
-pip install paho-mqtt py-sds011 python-aqi
+pip install paho-mqtt py-sds011 python-aqi python-decouple
 
 # Clone this repository.
 cd && git clone https://github.com/overbid/pmpi.git
