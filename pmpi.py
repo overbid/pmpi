@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+
+import Adafruit_DHT
 import aqi
 import paho.mqtt.publish as publish
 import re
@@ -8,7 +11,18 @@ from decouple import config
 from sds011 import *
 
 
-def temperature_get():
+def dht22_get(pin):
+    sensor = Adafruit_DHT.DHT22
+    humidity, temperature = 0.0, 0.0
+    try:
+        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+    except Exception:
+        pass
+
+    return round(temperature, 1), round(humidity, 1)
+
+
+def cpu_temperature_get():
     return_value = subprocess.check_output(
         "sudo vcgencmd measure_temp", stderr=subprocess.STDOUT, shell=True
     )
@@ -41,8 +55,7 @@ def aqi_convert(pm_2_5, pm_10):
     return aqi_2_5, aqi_10
 
 
-def mqtt_sent(pm_2_5, pm_10, aqi_2_5, aqi_10, temp):
-
+def mqtt_sent(pm_2_5, pm_10, aqi_2_5, aqi_10, temp, temperature, humidity):
     try:
         channel_id = config("CHANNEL_ID")
         apikey_write = config("APIKEY_WRITE")
@@ -53,7 +66,12 @@ def mqtt_sent(pm_2_5, pm_10, aqi_2_5, aqi_10, temp):
         mqtt_tsl = config("MQTT_TSL")
         mqtt_tsl = None if mqtt_tsl == "None" else mqtt_tsl
     except:
-        print("[ERROR]", datetime.now(), "Can't get .env file.", sep=",")
+        print(
+            "[ERROR]",
+            datetime.now().isoformat(" ", "seconds"),
+            "Can't get .env file.",
+            sep=",",
+        )
 
     mqtt_playload = (
         "field1="
@@ -65,7 +83,11 @@ def mqtt_sent(pm_2_5, pm_10, aqi_2_5, aqi_10, temp):
         + "&field4="
         + str(aqi_10)
         + "&field5="
-        + temp
+        + str(temp)
+        + "&field6="
+        + str(temperature)
+        + "&field7="
+        + str(humidity)
     )
     publish.single(
         mqtt_urn,
@@ -82,12 +104,37 @@ sensor = SDS011("/dev/ttyUSB0", use_query_mode=True)
 try:
     pm_2_5, pm_10 = pm_query(3)
     aqi_2_5, aqi_10 = aqi_convert(pm_2_5, pm_10)
-    temp = temperature_get()
-    mqtt_sent(pm_2_5, pm_10, aqi_2_5, aqi_10, temp)
-    print("[INFO]", datetime.now(), pm_2_5, pm_10, aqi_2_5, aqi_10, temp, sep=",")
+    temp = cpu_temperature_get()
+    temperature, humidity = dht22_get(22)
+    mqtt_sent(pm_2_5, pm_10, aqi_2_5, aqi_10, temp, temperature, humidity)
+    print(
+        "[INFO]",
+        datetime.now().isoformat(" ", "seconds"),
+        pm_2_5,
+        pm_10,
+        aqi_2_5,
+        aqi_10,
+        temp,
+        temperature,
+        humidity,
+        sep=",",
+    )
 except TypeError:
-    print("[FATAL]", datetime.now(), "Can't get data.", sep=",")
+    print(
+        "[FATAL]", datetime.now().isoformat(" ", "seconds"), "Can't get data.", sep=","
+    )
 except:
-    print("[ERROR]", datetime.now(), pm_2_5, pm_10, aqi_2_5, aqi_10, temp, sep=",")
+    print(
+        "[ERROR]",
+        datetime.now().isoformat(" ", "seconds"),
+        pm_2_5,
+        pm_10,
+        aqi_2_5,
+        aqi_10,
+        temp,
+        temperature,
+        humidity,
+        sep=",",
+    )
 
 sensor.sleep(sleep=True)

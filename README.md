@@ -9,6 +9,7 @@ In Thailand particulate matter is very high in October to February. This project
 * Power adapter
 * Sencor SDS011
 * [Optional] Raspberry Pi case
+* [Optional] DHT22
 
 I used an old Raspberry Pi and others from Aliexpress, totally below $60.
 
@@ -19,8 +20,10 @@ Signup [ThingSpeak](https://thingspeak.com). Got Channel ID and Write API Key to
 * Field 3: Pm 10 in µg/㎥
 * Field 4: Pm 10 in AQI Index
 * Field 5: CPU temperature (must less than 85℃)
+* Field 6: Temperature
+* Field 7: Humidity
 
-Download Image from [Ubuntu Server](http://cdimage.ubuntu.com/ubuntu-server/focal/daily-preinstalled/current/) for Raspberry Pi mostly use [32 bits](http://cdimage.ubuntu.com/ubuntu-server/focal/daily-preinstalled/current/focal-preinstalled-server-armhf+raspi.img.xz) except you have RAM more than 4 GB and that extravagant for use in this project. (You can use Raspberry Pi OS or Debian like OS if you like)
+I'm use Ubuntu Server for Raspberry Pi, Normally use 32 bits except you have RAM more than 4 GB and that extravagant for use in this project. (You can use Raspberry Pi OS or Debian like OS if you like)
 
 ## Headless Connection
 
@@ -79,7 +82,7 @@ sudo apt --yes autoremove
 # paho-mqtt for MQTT connection
 # py-sds011 for get data fron sensor
 # python-aqi for indicating PM
-pip install paho-mqtt py-sds011 python-aqi python-decouple
+pip install -U Adafruit-DHT paho-mqtt py-sds011 python-aqi python-decouple
 
 # Clone this repository.
 cd && git clone https://github.com/overbid/pmpi.git
@@ -92,7 +95,7 @@ sed -i 's/APIKEY_WRITE=.*/APIKEY_WRITE=<Your Write API Key>/g' .env
 # Setting crontab to send data to ThingSpeak every 3 minutes.
 cd && crontab -e
 crontab -l > my-crontab
-echo '*/3 * * * * /usr/bin/python3 /home/ubuntu/pmpi/pmpi.py >> ~/cron.log 2>&1' | tee -a my-crontab
+echo '*/3 * * * * sudo -E python3 ~/pmpi/pmpi.py >> ~/cron.log 2>&1' | tee -a my-crontab
 crontab my-crontab
 
 # Wait at 3 minutes and checking.
@@ -102,6 +105,7 @@ cd && cat cron.log && date
 ## Usage
 
 If everything is working well you can see your AQI data from your channel on ThingSpeak. Good luck.
+Example: [ThingSpeak](https://thingspeak.com/channels/1414919)
 
 ## License
 
